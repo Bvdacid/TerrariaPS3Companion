@@ -1,34 +1,40 @@
 name: Build SPRX
+
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf automake bison flex gcc libelf-dev make texinfo libncurses5-dev patch python3 subversion wget zlib1g-dev libtool libtool-bin bzip2 libgmp3-dev pkg-config g++
+          sudo apt-get install -y \
+            autoconf automake bison flex gcc libelf-dev make texinfo \
+            libncurses5-dev patch python3 subversion wget zlib1g-dev \
+            libtool libtool-bin bzip2 libgmp3-dev pkg-config g++ git
+
+      - name: Setup PS3DEV env
+        run: |
+          echo "PS3DEV=${{ github.workspace }}/ps3dev" >> $GITHUB_ENV
+          echo "PSL1GHT=${{ github.workspace }}/ps3dev" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/ps3dev/bin" >> $GITHUB_PATH
+          echo "${{ github.workspace }}/ps3dev/ppu/bin" >> $GITHUB_PATH
+          echo "${{ github.workspace }}/ps3dev/spu/bin" >> $GITHUB_PATH
 
       - name: Build PS3 Toolchain
         run: |
-          mkdir -p ${{ github.workspace }}/ps3dev/bin
-          mkdir -p ${{ github.workspace }}/ps3dev/ppu/bin
-          mkdir -p ${{ github.workspace }}/ps3dev/spu/bin
-          export PS3DEV=${{ github.workspace }}/ps3dev
-          export PSL1GHT=${{ github.workspace }}/ps3dev
-          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
-          git clone https://github.com/ps3dev/ps3toolchain
+          mkdir -p $PS3DEV
+          git clone --recursive https://github.com/ps3dev/ps3toolchain
           cd ps3toolchain
+          chmod +x toolchain.sh
           ./toolchain.sh
 
       - name: Build Plugin
         run: |
-          export PS3DEV=${{ github.workspace }}/ps3dev
-          export PSL1GHT=${{ github.workspace }}/ps3dev
-          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
           make
 
       - name: Upload Artifact

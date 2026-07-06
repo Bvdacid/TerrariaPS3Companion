@@ -8,9 +8,16 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y make gcc
+          sudo apt-get install -y autoconf automake bison flex gcc libelf-dev make texinfo libncurses5-dev patch python3 subversion wget zlib1g-dev libtool libtool-bin bzip2 libgmp3-dev pkg-config g++
+      - name: Build PS3 Toolchain
+        run: |
+          git clone https://github.com/ps3dev/ps3toolchain
+          cd ps3toolchain
+          ./toolchain.sh
       - name: Build Plugin
         run: |
+          # Add the toolchain to the system path so 'make' can find it
+          export PATH=$PATH:/usr/local/ps3dev/ppu/bin
           make
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

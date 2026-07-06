@@ -10,7 +10,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf automake bison flex gcc libelf-dev make texinfo libncurses5-dev patch python3 subversion wget zlib1g-dev libtool libtool-bin bzip2 libgmp3-dev pkg-config g++
             - name: Build PS3 Toolchain
-        run: |
           sudo mkdir -p /usr/local/ps3dev
           sudo chmod 777 /usr/local/ps3dev
           # Set variables for the current shell session

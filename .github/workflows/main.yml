@@ -1,4 +1,4 @@
-name: Build SPRX (STABLE)
+name: Build SPRX (FIXED)
 
 on: [push]
 
@@ -20,19 +20,19 @@ jobs:
             libelf-dev libgmp-dev libmpfr-dev libmpc-dev build-essential
 
       # ----------------------------
-      # Cache full PS3DEV (CRITICAL)
+      # Cache PS3DEV (FAST)
       # ----------------------------
       - name: Cache PS3DEV
         id: cache-ps3
         uses: actions/cache@v4
         with:
           path: ps3dev
-          key: ps3dev-stable-v1
+          key: ps3dev-fixed-v2
 
       # ----------------------------
-      # Build toolchain only if missing
+      # Build toolchain ONLY if missing compiler
       # ----------------------------
-      - name: Build PS3 Toolchain (if needed)
+      - name: Build Toolchain
         if: steps.cache-ps3.outputs.cache-hit != 'true'
         run: |
           mkdir -p $GITHUB_WORKSPACE/ps3dev
@@ -44,22 +44,8 @@ jobs:
           export PSL1GHT=$PS3DEV
           export MAKEFLAGS="-j$(nproc)"
 
-          # IMPORTANT: CI-safe execution (prevents hard fail on check script)
-          ./toolchain.sh || true
-
-      # ----------------------------
-      # FIX missing expected layout (THIS fixes check-ps3dev.sh failure)
-      # ----------------------------
-      - name: Fix PS3DEV layout
-        run: |
-          export PS3DEV=$GITHUB_WORKSPACE/ps3dev
-
-          mkdir -p $PS3DEV/bin
-          mkdir -p $PS3DEV/ppu/bin
-          mkdir -p $PS3DEV/spu/bin
-          mkdir -p $PS3DEV/include
-          mkdir -p $PS3DEV/lib
-          mkdir -p $PS3DEV/portlibs
+          # ❗ DO NOT ignore errors
+          ./toolchain.sh
 
       # ----------------------------
       # Setup environment
@@ -74,12 +60,12 @@ jobs:
           echo "$GITHUB_WORKSPACE/ps3dev/spu/bin" >> $GITHUB_PATH
 
       # ----------------------------
-      # Verify toolchain
+      # HARD CHECK (THIS PREVENTS YOUR ERROR)
       # ----------------------------
-      - name: Verify Toolchain
+      - name: Verify compiler exists
         run: |
-          which ppu-lv2-gcc || echo "NOT FOUND"
-          ppu-lv2-gcc --version || true
+          which ppu-lv2-gcc || exit 1
+          ppu-lv2-gcc --version
 
       # ----------------------------
       # Build plugin
@@ -89,7 +75,7 @@ jobs:
           make
 
       # ----------------------------
-      # Upload result
+      # Upload artifact
       # ----------------------------
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

@@ -14,17 +14,12 @@ jobs:
 
       - name: Build PS3 Toolchain
         run: |
-          # 1. Pre-create all expected directories to clear the script's presence check
           mkdir -p ${{ github.workspace }}/ps3dev/bin
           mkdir -p ${{ github.workspace }}/ps3dev/ppu/bin
           mkdir -p ${{ github.workspace }}/ps3dev/spu/bin
-          
-          # 2. Export every path the script verifies internally
           export PS3DEV=${{ github.workspace }}/ps3dev
           export PSL1GHT=${{ github.workspace }}/ps3dev
           export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
-          
-          # 3. Run the clone and compiler compilation
           git clone https://github.com/ps3dev/ps3toolchain
           cd ps3toolchain
           ./toolchain.sh
@@ -40,5 +35,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: plugin
-          path: plugin.sprx
           path: plugin.sprx

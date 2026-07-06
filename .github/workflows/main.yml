@@ -1,4 +1,4 @@
-name: Build SPRX
+name: Build SPRX (FAST)
 
 on: [push]
 
@@ -9,54 +9,70 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ----------------------------
+      # Install dependencies
+      # ----------------------------
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            autoconf automake bison flex gcc libelf-dev make texinfo \
-            libncurses5-dev patch python3 subversion wget zlib1g-dev \
-            libtool libtool-bin bzip2 libgmp3-dev pkg-config g++ git
+            make git python3 wget curl tar xz-utils \
+            libelf-dev libgmp-dev libmpfr-dev libmpc-dev
 
-      - name: Setup PS3DEV environment
+      # ----------------------------
+      # Cache prebuilt toolchain archive
+      # ----------------------------
+      - name: Cache PS3 Toolchain
+        uses: actions/cache@v4
+        with:
+          path: ps3dev.tar.gz
+          key: ps3-prebuilt-toolchain-v1
+
+      # ----------------------------
+      # Download toolchain if missing
+      # ----------------------------
+      - name: Fetch Prebuilt Toolchain
         run: |
-          echo "PS3DEV=${{ github.workspace }}/ps3dev" >> $GITHUB_ENV
-          echo "PSL1GHT=${{ github.workspace }}/ps3dev" >> $GITHUB_ENV
+          if [ ! -f ps3dev.tar.gz ]; then
+            echo "Downloading PS3 toolchain..."
+            wget -O ps3dev.tar.gz https://github.com/ps3dev/ps3toolchain/releases/download/prebuilt/ps3dev.tar.gz
+          else
+            echo "Using cached toolchain archive"
+          fi
 
-          echo "${{ github.workspace }}/ps3dev/bin" >> $GITHUB_PATH
-          echo "${{ github.workspace }}/ps3dev/ppu/bin" >> $GITHUB_PATH
-          echo "${{ github.workspace }}/ps3dev/spu/bin" >> $GITHUB_PATH
-
-      - name: Build PS3 Toolchain
+      # ----------------------------
+      # Extract toolchain
+      # ----------------------------
+      - name: Setup Toolchain
         run: |
-          mkdir -p $PS3DEV
+          mkdir -p $GITHUB_WORKSPACE/ps3dev
+          tar -xzf ps3dev.tar.gz -C $GITHUB_WORKSPACE
 
-          git clone --recursive https://github.com/ps3dev/ps3toolchain
-          cd ps3toolchain
+          echo "PS3DEV=$GITHUB_WORKSPACE/ps3dev" >> $GITHUB_ENV
+          echo "PSL1GHT=$GITHUB_WORKSPACE/ps3dev" >> $GITHUB_ENV
 
-          chmod +x toolchain.sh
-          ./toolchain.sh
+          echo "$GITHUB_WORKSPACE/ps3dev/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/ps3dev/ppu/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/ps3dev/spu/bin" >> $GITHUB_PATH
 
-          echo "==== TOOLCHAIN OUTPUT CHECK ===="
-          find $GITHUB_WORKSPACE -name "ppu-lv2-gcc" || true
-          find $PS3DEV -name "ppu-lv2-gcc" || true
-
-      - name: Verify compiler exists
+      # ----------------------------
+      # Verify compiler
+      # ----------------------------
+      - name: Verify Toolchain
         run: |
-          echo "PATH = $PATH"
-          which ppu-lv2-gcc || echo "ERROR: ppu-lv2-gcc not found"
-          ppu-lv2-gcc --version || true
+          which ppu-lv2-gcc || echo "NOT FOUND"
+          ppu-lv2-gcc --version
 
+      # ----------------------------
+      # Build plugin
+      # ----------------------------
       - name: Build Plugin
         run: |
           make
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: plugin
-          path: plugin.sprx        run: |
-          make
-
+      # ----------------------------
+      # Upload artifact
+      # ----------------------------
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
